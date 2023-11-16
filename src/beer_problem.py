@@ -4,6 +4,7 @@ the beer problem is actually Set cover problem, which belongs to NP-problems
 which that it have no other solution than the brute force which will have O(b!)
  b is number of possible beers
 """
+from itertools import combinations
 
 
 def reading_string(beer_file):
@@ -78,22 +79,42 @@ def write_beer(final_beers, output_file):
         file.write(str(final_beers))
 
 
+def generate_combinations(input_set):
+    """
+    Generates all possible combinations of elements in a set.
+
+    """
+
+    def helper(current_combination, remaining_elements, all_combinations):
+        if not remaining_elements:
+            all_combinations.append(tuple(current_combination))
+        else:
+            helper(current_combination + [remaining_elements[0]], remaining_elements[1:], all_combinations)
+            helper(current_combination, remaining_elements[1:], all_combinations)
+
+    all_combinations = []
+    helper([], list(input_set), all_combinations)
+    return all_combinations
+
+
 def set_cover_beer(beer_file, output_file):
     """
     brute force solution to a NP problem,there is nothing we can do
     :return:
     """
+
     matrix_of_beer, final_beers = string_to_matrix(reading_string(beer_file))
     beers_aff, needed_users = reformat_beer(matrix_of_beer, final_beers)
-
-    while needed_users:
-        best_beer = None
-        users_covered = set()
-        for beer, users in beers_aff.items():
-            covered = needed_users & users
-            if len(covered) > len(users_covered):
-                best_beer = beer
-                users_covered = covered
-        needed_users -= users_covered
-        final_beers.add(best_beer)
+    beers_comb = generate_combinations(set(beers_aff.keys()))
+    best_len = None
+    best_comb = None
+    for comb in beers_comb:
+        needed = needed_users.copy()
+        for beer in comb:
+            needed -= beers_aff[beer]
+        if len(needed) == 0:
+            if best_len is None or best_len > len(comb):
+                best_len = len(comb)
+                best_comb = comb
+    final_beers.update(set(best_comb))
     write_beer(final_beers, output_file)
